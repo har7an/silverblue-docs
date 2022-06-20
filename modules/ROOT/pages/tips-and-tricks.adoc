@@ -84,6 +84,54 @@ To get a more elaborate diff, you can use something like this:
 NOTE: This works because ostree keeps an unmodified copy of the `/etc` directory under `/usr/etc`.
       All of your changes go to `/etc` directly.
 
+
+=== Checking out past versions of the base OS
+
+Since `rpm-ostree` is like "git for operating systems", we can check out any
+arbitrary OS version that has ever existed, given we know the commit (i.e.
+"refspec") we want to go to. This can be handy when an earlier update broke one
+of your less frequently used applications and you cannot rollback to this last
+deployment directly.
+
+First we determine the so-called "ref" we are currently using. We can find it
+like this:
+
+  $ rpm-ostree status
+  Deployments:
+  ● fedora:fedora/36/x86_64/silverblue
+                     Version: 36.20220617.0 (2022-06-17T00:45:03Z)
+                  BaseCommit: 5bf39cb84b31d36af49e07dfb57a5c531ad7c13a8b2df91397494bea9bf6e871
+                GPGSignature: Valid signature by 53DED2CB922D8B8D9E63FD18999F7CBF38AB71F4
+  
+The ref in this case is: `fedora:fedora/36/x86_64/silverblue`. Now we pull a
+few commits from this ref to see what we can check out:
+
+  $ sudo ostree pull --depth=10 --commit-metadata-only fedora:fedora/36/x86_64/silverblue
+
+This allows us to view the version history:
+
+  $ ostree log fedora:fedora/36/x86_64/silverblue
+  commit 5bf39cb84b31d36af49e07dfb57a5c531ad7c13a8b2df91397494bea9bf6e871
+  Parent:  9f21661171d4da930e8ed28cfc7f13b88e457d48efd0c460106c49790495bdf2
+  ContentChecksum:  3fd05a0724181121eaec4706dc5de720b86ab43bee62f9ea91e6da90721dbdd5
+  Date:  2022-06-17 00:45:03 +0000
+  Version: 36.20220617.0
+  (no subject)
+
+  commit 9f21661171d4da930e8ed28cfc7f13b88e457d48efd0c460106c49790495bdf2
+  Parent:  6bf98c134e27c6fd21f78c700d6caea052f78789f240ef2f80de25bb09f0cab3
+  [ ... ]
+
+And pick a particular `commit` to check out:
+
+  $ sudo rpm-ostree deploy 9f21661171d4da930e8ed28cfc7f13b88e457d48efd0c460106c49790495bdf2
+
+After a reboot this new deployment is applied and you have successfully
+downgraded your system.
+
+Taken from https://discussion.fedoraproject.org/t/rolling-back-silverblue-to-older-release-without-saved-deployment/27511/3[this Fedora Discussion Thread].
+
+
 == Working with Flatpak applications
 
 === Directly accessing Flatpak applications from the CLI
